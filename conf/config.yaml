@@ -1,0 +1,49 @@
+# high-level config (hydra merges allow overrides: model=lstm horizon=24 etc.)
+seed: 42
+data:
+  tz: "America/New_York"
+  horizon_hours: 24          # forecast horizon
+  history_hours: 336         # lookback window (2 weeks)
+  freq: "H"                  # hourly data
+  loader: "local_csv"        # options: local_csv | pjm | nyiso
+  local_csv_path: "data/raw/load.csv"
+  region_name: "PJM_RTO"
+  weather:
+    stations:
+      - { name: "phl", lat: 39.873, lon: -75.242 }   # philadelphia intl
+      - { name: "pit", lat: 40.492, lon: -80.232 }   # pittsburgh intl
+      - { name: "iad", lat: 38.953, lon: -77.447 }   # dulles
+    start: "2018-01-01"
+    end: null
+features:
+  fourier_k: 5
+  temp_lags: [1, 24, 168]
+  rolling_hours: [3, 24, 168]
+  use_degree_hours: true
+  holidays_country: "US"
+split:
+  train_end: "2023-06-30"
+  val_end:   "2023-12-31"
+model: "lightgbm"           # options: lightgbm | lstm
+lightgbm:
+  learning_rate: 0.05
+  n_estimators: 1200
+  max_depth: -1
+  num_leaves: 64
+  min_child_samples: 30
+  subsample: 0.8
+  colsample_bytree: 0.8
+  quantiles: [0.1, 0.5, 0.9]
+lstm:
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.1
+  batch_size: 256
+  max_epochs: 25
+  lr: 1e-3
+  quantiles: [0.1, 0.5, 0.9]
+paths:
+  cache_dir: "data/processed"
+  artifacts_dir: "artifacts"
+  models_dir: "artifacts/models"
+  reports_dir: "artifacts/reports"
