@@ -2,6 +2,10 @@
 # usage: EIA_API_KEY=... python -m src.data.collect.fetch_eia_load --ba PJM --start 2018-01-01 --end 2025-09-01 --out data/raw/load.csv
 import os, argparse, pandas as pd, requests
 from datetime import datetime
+from dotenv import load_dotenv  # Add this import
+
+# Load environment variables from .env file
+load_dotenv()
 
 DATASET = "electricity/rto/operational-demand"  # eia v2 dataset for hourly demand (check docs for latest name)
 
@@ -13,7 +17,7 @@ def fetch_eia_hourly(ba: str, start: str, end: str, api_key: str) -> pd.DataFram
         "api_key": api_key,
         "frequency": "hourly",
         "data[0]": "value",
-        "facets[respondent][]": ba,   # e.g., "PJM", "NYIS", "MISO"
+        "facets[respondent][]": ba,   # e.g., "PJM", "NYIS", "MISO", ERCOT (ERCO), CAISO (CISO)
         "sort[0][column]": "period",
         "sort[0][direction]": "asc",
         "start": f"{start}T00:00",
@@ -43,8 +47,12 @@ if __name__ == "__main__":
     ap.add_argument("--end", default=datetime.utcnow().strftime("%Y-%m-%d"))
     ap.add_argument("--out", default="data/raw/load.csv")
     args = ap.parse_args()
+    
+    # Now it will automatically load from .env file
     key = os.getenv("EIA_API_KEY")
-    if not key: raise SystemExit("set EIA_API_KEY env var (free key from api.eia.gov)")
+    if not key: 
+        raise SystemExit("EIA_API_KEY not found. Create .env file with: EIA_API_KEY=your_key_here")
+    
     df = fetch_eia_hourly(args.ba, args.start, args.end, key)
     df.to_csv(args.out, index=False)
     print(f"wrote {args.out} with {len(df)} rows")
