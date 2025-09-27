@@ -7,7 +7,7 @@ from dotenv import load_dotenv  # Add this import
 # Load environment variables from .env file
 load_dotenv()
 
-DATASET = "electricity/rto/operational-demand"  # eia v2 dataset for hourly demand (check docs for latest name)
+DATASET = "electricity/rto/region-data"  # eia v2 dataset for hourly demand
 
 def fetch_eia_hourly(ba: str, start: str, end: str, api_key: str) -> pd.DataFrame:
     # note: endpoint/dim names evolve. if 4xx, check EIA v2 docs for the exact dataset + facet names.
@@ -18,6 +18,7 @@ def fetch_eia_hourly(ba: str, start: str, end: str, api_key: str) -> pd.DataFram
         "frequency": "hourly",
         "data[0]": "value",
         "facets[respondent][]": ba,   # e.g., "PJM", "NYIS", "MISO", ERCOT (ERCO), CAISO (CISO)
+        "facets[type][]": "D",        # D = Demand
         "sort[0][column]": "period",
         "sort[0][direction]": "asc",
         "start": f"{start}T00:00",
