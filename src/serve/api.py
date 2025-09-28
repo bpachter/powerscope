@@ -3,7 +3,15 @@ import os, joblib, torch
 import numpy as np
 from pydantic import BaseModel
 
-app = FastAPI(title="load forecaster", version="0.1")
+app = FastAPI(title="Load Forecaster", version="0.1")
+
+@app.get("/")
+def root():
+    return {"message": "PowerScope Load Forecasting API", "model": MODEL_KIND, "status": "running"}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy", "model": MODEL_KIND}
 
 class FeatureVector(BaseModel):
     features: list  # same ordering as training feat_cols
@@ -37,4 +45,8 @@ def predict(fv: FeatureVector):
             xt = torch.tensor(x, dtype=torch.float32).unsqueeze(0).repeat(1,128,1)  # naive pad
             out = model(xt).numpy()[0].tolist()
         p = out
-    return {"quantiles": quantiles, "pred": p, "feat_cols": feat_cols}
+    return {
+        "quantiles": [float(q) for q in quantiles],
+        "pred": [float(x) for x in p],
+        "num_features": int(len(feat_cols))
+    }

@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  powerscope-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_KIND=lightgbm
+      - PYTHONPATH=/app
+    volumes:
+      - ../artifacts:/app/artifacts:ro  # Mount trained models
+      - ../data:/app/data:ro           # Mount data (if needed)
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  powerscope-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ../artifacts:/app/artifacts:ro
+      - ../data:/app/data:ro
+    restart: unless-stopped
+    depends_on:
+      - powerscope-api
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - powerscope-api
+      - powerscope-ui
+    restart: unless-stopped

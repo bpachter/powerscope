@@ -10,8 +10,10 @@ if kind=="lightgbm":
     models = bundle['models']; scaler = bundle['scaler']; feat_cols = bundle['feat_cols']; quantiles = bundle['quantiles']
 else:
     import torch
+    from sklearn.preprocessing import StandardScaler
+    torch.serialization.add_safe_globals([StandardScaler])
     from src.models.torch_models import QuantileLSTM
-    ckpt = torch.load("artifacts/models/lstm/model.pt", map_location="cpu")
+    ckpt = torch.load("artifacts/models/lstm/model.pt", map_location="cpu", weights_only=False)
     model = QuantileLSTM(len(ckpt['feat_cols']), 128, 2, 0.1, tuple(ckpt['quantiles']))
     model.load_state_dict(ckpt['state_dict']); model.eval()
     scaler = ckpt['scaler']; feat_cols = ckpt['feat_cols']; quantiles = ckpt['quantiles']

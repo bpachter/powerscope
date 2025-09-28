@@ -5,7 +5,11 @@
       "Bash(python:*)",
       "Bash(curl:*)",
       "Bash(pip install:*)",
-      "Bash(nvidia-smi:*)"
+      "Bash(nvidia-smi:*)",
+      "Bash(uvicorn:*)",
+      "Bash(streamlit run:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker:*)"
     ],
     "deny": [],
     "ask": []
