@@ -54,13 +54,36 @@ def main(cfg):
 
     ensure_dir(cfg.paths.artifacts_dir)
     df = build_dataset(cfg)
+    print(f"Dataset shape after feature engineering: {df.shape}")
     X, y, feat_cols, times = make_xy(df, cfg.data.horizon_hours)
+    print(f"X shape: {X.shape}, y shape: {y.shape}, times shape: {times.shape}")
 
     # split by time (train/val/test as per config)
-    t = pd.to_datetime(df['timestamp'])
-    train_mask = t <= pd.to_datetime(cfg.split.train_end)
-    val_mask   = (t > pd.to_datetime(cfg.split.train_end)) & (t <= pd.to_datetime(cfg.split.val_end))
-    test_mask  = t > pd.to_datetime(cfg.split.val_end)
+    t = pd.to_datetime(times)  # Use the times from make_xy which aligns with X,y
+    # Check if times are timezone-aware and handle accordingly
+    if t.tz is None:
+        # Times are naive, make split dates naive too
+        train_end = pd.to_datetime(cfg.split.train_end)
+        val_end = pd.to_datetime(cfg.split.val_end)
+    else:
+        # Times are timezone-aware, make split dates timezone-aware
+        train_end = pd.to_datetime(cfg.split.train_end).tz_localize(cfg.data.tz)
+        val_end = pd.to_datetime(cfg.split.val_end).tz_localize(cfg.data.tz)
+    train_mask = t <= train_end
+    val_mask   = (t > train_end) & (t <= val_end)
+    test_mask  = t > val_end
+    print(f"Split sizes: train={train_mask.sum()}, val={val_mask.sum()}, test={test_mask.sum()}")
+
+    # Check for NaN values and handle them
+    X_train_raw = X[train_mask]
+    print(f"NaN values in training features: {pd.DataFrame(X_train_raw).isnull().sum().sum()}")
+    if pd.DataFrame(X_train_raw).isnull().any().any():
+        print("Features with NaN values:")
+        nan_features = pd.DataFrame(X_train_raw, columns=feat_cols).isnull().sum()
+        print(nan_features[nan_features > 0])
+        # Fill NaN values with forward fill then backward fill
+        X = pd.DataFrame(X, columns=feat_cols).fillna(method='ffill').fillna(method='bfill').values
+        print("NaN values filled using forward/backward fill")
 
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X[train_mask])
@@ -80,7 +103,7 @@ def main(cfg):
         )
         models = train_quantile_models(X_train, y_train, X_val, y_val, params, cfg.lightgbm.quantiles)
         # save
-        import joblib, os
+        import joblib
         outdir = os.path.join(cfg.paths.models_dir, "lightgbm")
         ensure_dir(outdir)
         joblib.dump({'models': models, 'scaler': scaler, 'feat_cols': feat_cols, 'quantiles': cfg.lightgbm.quantiles}, os.path.join(outdir, "model.joblib"))
@@ -99,7 +122,12 @@ def main(cfg):
             return np.array(seqX), np.array(seqY)
 
         Xtr, ytr = to_seq(X_train, y_train, np.ones_like(y_train, dtype=bool))
-        Xva, yva = to_seq(np.vstack([X_train[-T:], X_val]), np.hstack([y_train[-T:], y_val]), np.ones(len(y_val), dtype=bool))
+        # For validation, we need to include T samples before X_val to create sequences
+        X_val_with_history = np.vstack([X_train[-T:], X_val])
+        y_val_with_history = np.hstack([y_train[-T:], y_val])
+        # Create mask that only takes the validation part (skip the T history samples)
+        val_mask = np.concatenate([np.zeros(T, dtype=bool), np.ones(len(y_val), dtype=bool)])
+        Xva, yva = to_seq(X_val_with_history, y_val_with_history, val_mask)
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         model = QuantileLSTM(input_size=Xtr.shape[-1], hidden=cfg.lstm.hidden_size, layers=cfg.lstm.num_layers, dropout=cfg.lstm.dropout, quantiles=tuple(cfg.lstm.quantiles)).to(device)

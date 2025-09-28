@@ -4,8 +4,8 @@ from datetime import datetime
 
 def fetch_weather(stations, start: str, end: str | None, tz: str):
     # stations: list of dicts with lat, lon
-    start_dt = pd.to_datetime(start)
-    end_dt = pd.to_datetime(end) if end else pd.Timestamp.utcnow()
+    start_dt = pd.to_datetime(start).tz_localize(None)  # Make timezone-naive
+    end_dt = pd.to_datetime(end).tz_localize(None) if end else pd.Timestamp.utcnow().tz_localize(None)
     frames = []
     for s in stations:
         pt = Point(s['lat'], s['lon'])

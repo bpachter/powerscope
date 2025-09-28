@@ -22,8 +22,8 @@ features:
   use_degree_hours: true
   holidays_country: "US"
 split:
-  train_end: "2023-06-30"
-  val_end:   "2023-12-31"
+  train_end: "2023-06-30 23:59:59"
+  val_end:   "2023-12-31 23:59:59"
 model: "lightgbm"           # options: lightgbm | lstm
 lightgbm:
   learning_rate: 0.05

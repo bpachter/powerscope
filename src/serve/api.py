@@ -16,7 +16,9 @@ if MODEL_KIND == "lightgbm":
     bundle = joblib.load("artifacts/models/lightgbm/model.joblib")
     models = bundle['models']; scaler = bundle['scaler']; feat_cols = bundle['feat_cols']; quantiles = bundle['quantiles']
 else:
-    ckpt = torch.load("artifacts/models/lstm/model.pt", map_location="cpu")
+    from sklearn.preprocessing import StandardScaler
+    torch.serialization.add_safe_globals([StandardScaler])
+    ckpt = torch.load("artifacts/models/lstm/model.pt", map_location="cpu", weights_only=False)
     from src.models.torch_models import QuantileLSTM
     model = QuantileLSTM(len(ckpt['feat_cols']), 128, 2, 0.1, tuple(ckpt['quantiles']))
     model.load_state_dict(ckpt['state_dict']); model.eval()

@@ -12,7 +12,7 @@ def train_quantile_models(X_train, y_train, X_val, y_val, params, quantiles):
         dtrain = lgb.Dataset(X_train, label=y_train)
         dval = lgb.Dataset(X_val, label=y_val, reference=dtrain)
         model = lgb.train(qp, dtrain, valid_sets=[dtrain, dval], valid_names=['train','val'],
-                          verbose_eval=200)
+                          callbacks=[lgb.log_evaluation(200)])
         models[q] = model
     return models
 
