@@ -9,7 +9,10 @@
       "Bash(uvicorn:*)",
       "Bash(streamlit run:*)",
       "Bash(docker-compose build:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Read(//c/Users/benpa/OneDrive/Desktop/Coursera/IBM AI Engineering/ml-port/HypotheSynth/**)",
+      "Bash(npm start)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
